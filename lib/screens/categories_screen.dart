@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../services/meal_api_service.dart';
 import '../widgets/category_card.dart';
-import 'meals_by_category_screen.dart';
+import 'favorites_screen.dart';
 import 'meal_detail_screen.dart';
+import 'meals_by_category_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -22,10 +23,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     _futureCategories = MealApiService.getCategories();
   }
 
-  void _openRandomMeal() async {
+  Future<void> _openRandomMeal() async {
     try {
       final randomMeal = await MealApiService.getRandomMeal();
       if (!mounted) return;
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -33,12 +35,18 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ),
       );
     } catch (_) {
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Не успеа random рецепт.')),
       );
     }
+  }
+
+  void _openFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+    );
   }
 
   @override
@@ -48,9 +56,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         title: const Text('Категории'),
         actions: [
           IconButton(
-            onPressed: _openRandomMeal,
+            icon: const Icon(Icons.favorite),
+            tooltip: 'Омилени',
+            onPressed: _openFavorites,
+          ),
+          IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Random рецепт',
+            onPressed: _openRandomMeal,
           ),
         ],
       ),
@@ -64,11 +77,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 hintText: 'Пребарај категорија...',
                 border: OutlineInputBorder(),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _search = value.toLowerCase();
-                });
-              },
+              onChanged: (value) => setState(() => _search = value.toLowerCase().trim()),
             ),
           ),
           Expanded(
@@ -77,16 +86,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Грешка: ${snapshot.error}'),
-                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Грешка: ${snapshot.error}'));
                 }
 
                 final categories = snapshot.data ?? [];
-                final filtered = categories.where((c) {
-                  return c.name.toLowerCase().contains(_search);
-                }).toList();
+                final filtered = categories
+                    .where((c) => c.name.toLowerCase().contains(_search))
+                    .toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text('Нема резултати.'));
+                }
 
                 return ListView.builder(
                   itemCount: filtered.length,

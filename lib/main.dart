@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'screens/categories_screen.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+import 'services/notification_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MealApp());
+  NotificationService.init();
 }
 
 class MealApp extends StatelessWidget {
